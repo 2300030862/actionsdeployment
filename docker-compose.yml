@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  deployment-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deployment-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:h2:mem:testdb
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD: ""
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.H2Dialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_ACTIONS_DEPLOYMENT: DEBUG
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/employees/stats/total"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - deployment-network
+
+  # Optional: PostgreSQL for production
+  postgres:
+    image: postgres:15-alpine
+    container_name: deployment-db
+    environment:
+      POSTGRES_USER: deployment_user
+      POSTGRES_PASSWORD: deployment_pass
+      POSTGRES_DB: deployment_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - deployment-network
+    profiles:
+      - prod
+
+networks:
+  deployment-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
